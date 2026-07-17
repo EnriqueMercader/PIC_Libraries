@@ -1,0 +1,8 @@
+void copyString(char *sourceString, char *targetString) {
+    while (*sourceString) {
+        *targetString = *sourceString;
+        sourceString++;
+        targetString++;
+    }
+    *targetString = '\0'; // Add the null terminator to the end of stringB
+}
