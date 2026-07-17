@@ -1,0 +1,94 @@
+#define digitalPwmPin   LATC0
+
+void pwm_frequency(unsigned int frequency) {
+    /**
+     * Set the PWM parameters for the CCP1 module.
+     * Adjusts the Timer2 prescaler, PR2, and CCPR1L based on the desired frequency and duty cycle.
+     *
+     * @param frequency The desired PWM frequency in Hertz (Hz).
+     * @Note The function sets the the PWM at 1KHZ if an unattainable value of frequency is given.
+     */
+    
+    // Variables
+    unsigned int prescaler = 1;                                         // Initialize prescaler to 1
+    unsigned int pr2_value = 0;                                         // Initialize PR2 value to 0
+    bool valueFound = false;                                            // Flag to check if valid values are found
+
+    // Loop to find appropriate prescaler and calculate PR2 and CCPR1L values
+    while ((valueFound == false) && (prescaler <= 16)) {
+        pr2_value = ((_XTAL_FREQ / (4 * prescaler * frequency)) - 1);   // Calculate PR2 value based on the formula
+        if (pr2_value <= 255) {                                         // Check if PR2 value is within the valid range                             // Check if CCPR1L value with the DT at 100% is within the valid range
+            valueFound = true;
+            if (prescaler == 1) {
+                T2CONbits.T2CKPS = 0b00;                            // Set the Timer2 prescaler for the desired frequency
+            } else if (prescaler == 4) {
+                T2CONbits.T2CKPS = 0b01;                            // Set the Timer2 prescaler for the desired frequency
+            } else if (prescaler == 16) {
+                T2CONbits.T2CKPS = 0b11;                            // Set the Timer2 prescaler for the desired frequency
+            }
+        }
+        prescaler *= 4;                                                 // Try the next prescaler value 
+    }
+    if (valueFound == false) {                                          // If valid values not found, set default configuration
+        pr2_value = 249;                                                // Default PR2 value for 1 kHz with 4 MHz oscillator and 1:16 prescaler
+    }
+    PR2 = pr2_value;                                                    // Set the PR2 register value
+}
+
+void pwm_start(unsigned int frequency, unsigned int numberOfOutputs) {
+    /**
+     * Initialize the CCP1 module for PWM operation with the specified frequency and duty cycle.
+     * Configures the necessary settings for the PWM operation, including Timer2 and CCP1.
+     *
+     * @param frequency The initial PWM frequency in Hertz (Hz).
+     * @param dutyCycle The initial duty cycle percentage in the range of 0 to 100.
+     *        Represents the percentage of time the PWM signal is high compared to the total period.
+     * 
+     * @Note The function sets the the PWM at 1KHZ at 50% if an unattainable value of frequency is given.
+     */
+    
+    // Set CCP1 module for PWM operation
+    if (numberOfOutputs >= 1){
+        TRISC2 = 0;                                                         // Set CCP1 pin as output
+        CCP1CON = 0x0C;                                                     // Set CCP2 module for PWM mode
+    }
+    if (numberOfOutputs >= 2){
+        TRISC1 = 0;                                                         // Set CCP2 pin as output
+        CCP2CON = 0x0C;                                                     // Set CCP2 module for PWM mode
+    }
+    pwm_frequency(frequency);
+    TMR2 = 0;                                                               // Clear Timer2 initially
+    TMR2ON = 1;                                                             // Turn on Timer2
+}
+
+void pwm_dutyCycle(char output,unsigned int dutyCycle) {
+    /**
+     * Set the duty cycle for the PWM output on the CCP module.
+     * Calculates and sets the appropriate CCPRxL value based on the given duty cycle percentage.
+     *
+     * @param module The pwm module that in which the duty cycle change is going to take effect.
+     * @param dutyCycle The duty cycle percentage in the range of 0 to 100.
+     *        Represents the percentage of time the PWM signal is high compared to the total period.
+     */
+    if (output == 1){
+        CCPR1L = (PR2 + 1) * dutyCycle / 100;                               // Calculate and set CCPR1L value based on the duty cycle
+    }
+    else if (output == 2){
+        CCPR2L = (PR2 + 1) * dutyCycle / 100;                               // Calculate and set CCPR2L value based on the duty cycle
+    }
+}
+
+void delay(int time){
+    for (int i = 0; i <= time; i++){
+            __delay_us(1);
+        }
+}
+
+void digitalPWM(char dutyCycle){
+    if (dutyCycle >> 1){
+        digitalPwmPin = 1;
+        delay(dutyCycle*10);
+        digitalPwmPin = 0;
+        delay(1000 - (dutyCycle*10));
+    }
+}
