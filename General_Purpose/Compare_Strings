@@ -1,0 +1,28 @@
+bool compareString(const char *referenceString, const char *inputString) {
+    /**
+     * @brief Compares two strings to check if they are equal.
+     * 
+     * This function compares two strings by iterating over their characters
+     * until the end of the string literal is reached or until a character 
+     * mismatch is found. If both strings have the same length and their 
+     * characters are equal, it returns true. Otherwise, it returns false.
+     *
+     * @param referenceString Pointer to the reference string.
+     * @param inputString Pointer to the input string.
+     * @return True if the two strings are equal, false otherwise.
+     */
+
+    /*Function's Variables*/
+    char i = 0;                                                                         
+
+    /*Function's Code*/                                                                 //Verifies that the characters are the same until the ...
+    while((referenceString[i] == inputString[i]) && (referenceString[i] != '\0')) {     //...end of the string literal. EG.
+        i++;                                                                            // "A   B   C"              "X   Y   Z"
+    }                                                                                   // [A] [B] [C]      NOT     [A] [B] [C]
+    if((referenceString[i] == '\0') && (inputString[i] == '\0')) {                      //If both strings also have the same length.
+        return 1;                                                                       // "A   B   C"              "A   B   C"
+    }                                                                                   // [A] [B] [C]      NOT     [A] [B] [C] [D] [E]
+    else {                                                                              //If the strings are different.
+        return 0;
+    }
+}
