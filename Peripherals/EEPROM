@@ -1,0 +1,67 @@
+bool EEPROM_checkIfAddressIsWritten(int address);
+void EEPROM_WriteString(int address, char *string);
+char* EEPROM_ReadString(int address);
+
+bool EEPROM_checkIfAddressIsWritten(int address) {
+    char data;
+    // Read the data from the EEPROM
+    EEADR = address;
+    EECON1bits.WREN = 0; // WREN bit is clear for read operation
+    EECON1bits.EEPGD = 0; // Access data EEPROM memory
+    EECON1bits.RD = 1; // To read data of EEPROM memory, set RD=1
+    data = EEDATA; // Store the read data in the data variable
+
+    // If the data is different from the default value 0xFF, the memory has been written to before
+    if (data != 0xFF) {
+        return true;
+    } else {
+        return false;
+    }
+}
+void EEPROM_WriteString(int address, char *string) {
+    int i = 0;
+    while (string[i] != '\0') { // Write each character until the null terminator is reached
+        EEADR = address + i; // Write address to the EEADR register
+        EEDATA = string[i]; // Copy data to the EEDATA register for writing to EEPROM location
+        EECON1bits.EEPGD = 0; // Access data EEPROM memory
+        EECON1bits.CFGS = 0; // Access flash program or data memory
+        EECON1bits.WREN = 1; // Allow write to the memory
+        INTCONbits.GIE = 0; // Disable global interrupt
+        EECON2 = 0x55;
+        EECON2 = 0xaa;
+        EECON1bits.WR = 1; // Start writing data to EEPROM memory
+        INTCONbits.GIE = 1; // Enable interrupt
+        while (PIR2bits.EEIF == 0); // Wait for write operation to complete
+        PIR2bits.EEIF = 0; // Reset EEIF for further write operation
+        i++;
+    }
+    // Write the null terminator to the EEPROM
+    EEADR = address + i; // Write address to the EEADR register
+    EEDATA = '\0'; // Write the null terminator to the EEPROM
+    EECON1bits.EEPGD = 0; // Access data EEPROM memory
+    EECON1bits.CFGS = 0; // Access flash program or data memory
+    EECON1bits.WREN = 1; // Allow write to the memory
+    INTCONbits.GIE = 0; // Disable global interrupt
+    EECON2 = 0x55;
+    EECON2 = 0xaa;
+    EECON1bits.WR = 1; // Start writing data to EEPROM memory
+    INTCONbits.GIE = 1; // Enable interrupt
+    while (PIR2bits.EEIF == 0); // Wait for write operation to complete
+    PIR2bits.EEIF = 0; // Reset EEIF for further write operation
+}
+char* EEPROM_ReadString(int address) {
+    static char data[20]; // Adjust the size as needed
+    int i = 0;
+    while (1) {
+        EEADR = address + i; // Read data at the specified address
+        EECON1bits.WREN = 0; // WREN bit is clear for read operation
+        EECON1bits.EEPGD = 0; // Access data EEPROM memory
+        EECON1bits.RD = 1; // To read data of EEPROM memory, set RD=1
+        data[i] = EEDATA; // Store the read data in an array
+        if (data[i] == '\0') { // Break the loop if null terminator is encountered
+            break;
+        }
+        i++;
+    }
+    return data;
+}
